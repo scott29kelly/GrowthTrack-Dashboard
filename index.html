@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bucks Church Growth Track Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffd89b, #19547b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 216, 155, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            color: #b8b8d1;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .metric-card h3 {
+            font-size: 0.9rem;
+            color: #b8b8d1;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .metric-change {
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .positive {
+            color: #4ade80;
+        }
+        
+        .negative {
+            color: #f87171;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        .chart-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        
+        .chart-analysis {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .chart-analysis p {
+            color: #b8b8d1;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        
+        .chart-analysis strong {
+            color: #e0e7ff;
+        }
+        
+        .chart-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .chart-controls label {
+            font-size: 0.9rem;
+            color: #b8b8d1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chart-controls input[type="range"] {
+            width: 150px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        
+        .chart-controls input[type="range"]:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .chart-controls input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #ffd89b;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .chart-controls input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #ffd89b;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .range-value {
+            font-weight: 600;
+            color: #ffd89b;
+            min-width: 40px;
+            text-align: right;
+        }
+        
+        .focus-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+        
+        .reset-btn, .focus-btn {
+            background: rgba(251, 191, 36, 0.2);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            color: #ffd89b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .reset-btn:hover, .focus-btn:hover {
+            background: rgba(251, 191, 36, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .focus-btn {
+            background: rgba(147, 51, 234, 0.2);
+            border-color: rgba(147, 51, 234, 0.5);
+            color: #a78bfa;
+        }
+        
+        .focus-btn:hover {
+            background: rgba(147, 51, 234, 0.3);
+        }
+        
+        .insights-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .insights-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ffd89b, #19547b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .insight-item {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            border-left: 4px solid #ffd89b;
+        }
+        
+        .insight-item h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #ffd89b;
+        }
+        
+        .insight-item p {
+            color: #b8b8d1;
+            line-height: 1.6;
+        }
+        
+        .insight-item.primary {
+            background: rgba(102, 126, 234, 0.1);
+            border-left-color: #667eea;
+        }
+        
+        .insight-item.primary h3 {
+            color: #a5b4fc;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+        
+        .note-box {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .note-box h3 {
+            color: #fbbf24;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .data-period {
+            text-align: center;
+            margin-top: 40px;
+            color: #b8b8d1;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .chart-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            
+            .chart-controls label {
+                justify-content: space-between;
+            }
+            
+            .focus-buttons {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .reset-btn, .focus-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🙏 Bucks Church Growth Track Dashboard</h1>
+            <p>Spiritual Demographic Progression Analysis (2023 - Present)</p>
+            <p style="font-size: 0.9rem; margin-top: 5px; color: #fbbf24;">*Current period (2025 T2) includes partial data through June 2025</p>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Current Total Adults</h3>
+                <div class="metric-value">596</div>
+                <div class="metric-change">
+                    <span>📊</span>
+                    <span>Partial T2 (May-Jun only)</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>2-Year Growth Rate</h3>
+                <div class="metric-value">34.4%</div>
+                <div class="metric-change positive">
+                    <span>↑</span>
+                    <span>From 588 to 790 peak</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Congregation Growth</h3>
+                <div class="metric-value">+56.8%</div>
+                <div class="metric-change positive">
+                    <span>↑</span>
+                    <span>Strongest growth area</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Committed Phase</h3>
+                <div class="metric-value">53</div>
+                <div class="metric-change negative">
+                    <span>⚠️</span>
+                    <span>Key opportunity (8.9%)</span>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3>Core Leadership</h3>
+                <div class="metric-value">63</div>
+                <div class="metric-change">
+                    <span>💪</span>
+                    <span>Stable at 10.6%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="note-box">
+            <h3>⚠️ Important Note: Partial Trimester Data</h3>
+            <p>The 2025 T2 data shown represents only May-June (2 months) compared to full trimesters which cover 4 months. Direct comparisons with previous periods should account for this difference.</p>
+        </div>
+        
+        <div class="grid-2">
+            <div class="chart-container">
+                <h2 class="chart-title">📊 Spiritual Phase Distribution Over Time</h2>
+                <div class="chart-controls">
+                    <label>
+                        Y-Axis Max:
+                        <input type="range" id="stackedMax" min="100" max="1000" step="50" value="900">
+                        <span class="range-value" id="stackedMaxValue">900</span>
+                    </label>
+                    <div class="focus-buttons">
+                        <button class="reset-btn" onclick="resetStackedZoom()">Reset Zoom</button>
+                        <button class="focus-btn" onclick="focusAllPhases()">All Phases</button>
+                        <button class="focus-btn" onclick="focusCongregationCommitted()">Congregation & Committed</button>
+                        <button class="focus-btn" onclick="focusCommittedCore()">Committed & Core</button>
+                        <button class="focus-btn" onclick="focusGrowthPeriod()">2024-2025 Growth</button>
+                    </div>
+                </div>
+                <canvas id="stackedAreaChart"></canvas>
+                <div class="chart-analysis">
+                    <p>This stacked area chart reveals <strong>strong overall growth</strong> from 588 to 790 adults (+34.4%) between 2023 T1 and 2025 T1. The <strong>Crowd phase shows high volatility</strong>, surging from 349 to 536 members, indicating successful attraction but retention challenges. <strong>Congregation growth is the success story</strong>, with steady increases demonstrating effective integration pathways. However, the <strong>Committed phase plateau</strong> (51-61 members) suggests a bottleneck in helping people engage in both groups AND serving simultaneously.</p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 class="chart-title">📈 Phase Percentage Trends</h2>
+                <div class="chart-controls">
+                    <label>
+                        Y-Axis Max:
+                        <input type="range" id="percentMax" min="10" max="100" step="5" value="80">
+                        <span class="range-value" id="percentMaxValue">80%</span>
+                    </label>
+                    <div class="focus-buttons">
+                        <button class="reset-btn" onclick="resetPercentZoom()">Reset Zoom</button>
+                        <button class="focus-btn" onclick="focusSmallPercentages()">Committed & Core (0-25%)</button>
+                        <button class="focus-btn" onclick="focusCongregationRange()">Congregation Focus (0-30%)</button>
+                        <button class="focus-btn" onclick="focusNonCrowdRange()">All Except Crowd (0-40%)</button>
+                    </div>
+                </div>
+                <canvas id="percentageLineChart"></canvas>
+                <div class="chart-analysis">
+                    <p>The percentage trends reveal important compositional shifts. Despite growth, <strong>Crowd percentage increased</strong> from 65.8% to 68.6% (peak: 69.9%), indicating faster growth in casual attendance than deeper engagement. <strong>Congregation shows the best gains</strong>, growing from 13.8% to 21.3%, proving improved conversion of casual attendees. The <strong>declining Committed and Core percentages</strong> (from 9.2% to 8.9% and 11.2% to 10.6% respectively) indicate the church isn't keeping pace with overall growth in developing fully engaged members and leaders.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h2 class="chart-title">🎯 Current Phase Distribution (2025 T2 Partial: May-Jun)</h2>
+            <canvas id="currentDistributionChart" style="max-height: 400px;"></canvas>
+            <div class="chart-analysis">
+                <p>The current distribution shows a <strong>Crowd-heavy structure</strong> with 353 members (59.2%), presenting both opportunity and risk. The <strong>strong Congregation</strong> at 127 members (21.3%) - the best percentage to date - shows successful first-step engagement strategies. The <strong>Committed gap</strong> with only 53 members (8.9%) represents the biggest growth opportunity. The <strong>180-person gap</strong> between Congregation and Committed is your primary discipleship target - focus on helping those already in groups to start serving, or those serving to join groups.</p>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <div class="chart-container">
+                <h2 class="chart-title">📊 Year-Over-Year Phase Comparison</h2>
+                <canvas id="yearGrowthChart"></canvas>
+                <div class="chart-analysis">
+                    <p>This comparison reveals phase-specific growth patterns. <strong>Crowd increased 26.6%</strong> from 354 to 448 average members, showing strong attraction. <strong>Congregation grew 41.8%</strong> from 91 to 129, the highest growth rate among all phases. <strong>Committed remained flat</strong> at 57 members average, indicating a critical bottleneck. <strong>Core slightly declined</strong> from 62 to 60 members. While overall growth is healthy at 23% over two years, the lack of growth in deeper engagement phases requires immediate attention.</p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 class="chart-title">🔄 Phase Conversion Analysis</h2>
+                <canvas id="conversionChart"></canvas>
+                <div class="chart-analysis">
+                    <p>This visualization shows the <strong>conversion opportunity</strong> at each phase transition. The <strong>226-person gap</strong> between Crowd (353) and Congregation (127) represents the largest opportunity for initial engagement. The <strong>74-person gap</strong> between Congregation and Committed is the most critical bottleneck - these are people already partially engaged who need encouragement to complete their commitment. The <strong>positive 10-person difference</strong> between Committed (53) and Core (63) suggests some leaders may bypass traditional progression paths.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="insights-section">
+            <h2>💡 Key Insights & Strategic Direction</h2>
+            
+            <div class="insight-item primary">
+                <h3>🎉 Celebrating God's Faithfulness</h3>
+                <p>Bucks Church has experienced remarkable growth over the past two years, expanding from 588 adults in 2023 T1 to a peak of 790 in 2025 T1 - representing a 34.4% increase. This growth demonstrates God's blessing on our faithful outreach and the compelling nature of our church community. Year-over-year growth is accelerating from 19.5% to projected 23%+, showing sustained momentum.</p>
+            </div>
+            
+            <div class="insight-item">
+                <h3>✨ Key Strengths to Build Upon</h3>
+                <p><strong>Congregation Phase Success:</strong> Growing 56.8% from 81 to 127 members, this represents our most successful integration pathway. The percentage increase from 13.8% to 21.3% shows we're effectively converting casual attendees into regular participants through groups or serving opportunities.<br><br>
+                <strong>Leadership Stability:</strong> Core leadership has remained remarkably stable at 56-66 members throughout rapid growth, providing consistent vision and direction. The current 63 leaders for 596 adults maintains a healthy ratio.</p>
+            </div>
+            
+            <div class="insight-item">
+                <h3>⚠️ Critical Opportunities for Growth</h3>
+                <p><strong>Committed Phase Development:</strong> With only 53 members engaged in both groups AND serving, this represents our biggest growth opportunity. The 74-person gap between Congregation (127) and Committed (53) indicates many are stuck at partial engagement.<br><br>
+                <strong>Leadership Pipeline:</strong> Core percentage declining from 11.2% to 10.6% requires proactive development. As we grow, we must intentionally develop new leaders to maintain healthy ratios and ministry effectiveness.</p>
+            </div>
+            
+            <div class="insight-item">
+                <h3>📉 Understanding Current Numbers</h3>
+                <p>The current period (2025 T2) only includes May-June data, representing half of the typical trimester (May-Aug). The apparent "drop" to 596 adults is likely not a true decline but rather incomplete data. If we project the current May-June numbers to a full 4-month trimester, we could expect approximately 800-850 adults, which would represent continued year-over-year growth.</p>
+            </div>
+            
+            <div class="insight-item primary">
+                <h3>🎯 Strategic Recommendations & Vision Forward</h3>
+                <p><strong>1. Complete T2 Analysis:</strong> Continue tracking July-August data to get a complete picture of T2 2025 performance before making major strategic adjustments.<br><br>
+                <strong>2. Committed Phase Pipeline:</strong> Create intentional pathways to help Congregation members add either group participation or ministry service to complete their journey to Committed status. Consider a "Next Steps" campaign targeting the 74-person gap.<br><br>
+                <strong>3. Leadership Development:</strong> With strong growth trajectory through T1 2025, proactively develop new Core leaders. Launch leadership training cohorts to maintain healthy ratios.<br><br>
+                <strong>4. Integration Focus:</strong> Continue successful strategies that have driven Congregation growth - this is your strongest sustained growth area. Double down on what's working.<br><br>
+                <strong>5. Infrastructure Scaling:</strong> Prepare facilities, programs, and systems for potential 850+ regular attendees by year-end 2025.</p>
+                <p style="text-align: center; font-style: italic; color: #ffd89b; margin-top: 20px;">"And let us consider how we may spur one another on toward love and good deeds." - Hebrews 10:24</p>
+            </div>
+        </div>
+        
+        <div class="data-period">
+            <p>Data Period: January 2023 - June 2025 | *2025 T2 includes May-June only (partial trimester) | Full trimester: May-August</p>
+        </div>
+    </div>
+    
+    <script>
+        // Data preparation
+        const periods = ['2023 T1', '2023 T2', '2023 T3', '2024 T1', '2024 T2', '2024 T3', '2025 T1', '2025 T2*'];
+        const crowdData = [387, 325, 349, 372, 431, 536, 542, 353];
+        const congregationData = [81, 98, 93, 109, 119, 118, 131, 127];
+        const committedData = [54, 58, 60, 51, 54, 54, 61, 53];
+        const coreData = [66, 60, 60, 58, 59, 59, 56, 63];
+        const totalData = [588, 541, 562, 590, 663, 767, 790, 596];
+        
+        // Percentage data
+        const crowdPercent = [65.8, 60.1, 62.1, 63.1, 65.0, 69.9, 68.6, 59.2];
+        const congregationPercent = [13.8, 18.1, 16.5, 18.5, 17.9, 15.4, 16.6, 21.3];
+        const committedPercent = [9.2, 10.7, 10.7, 8.6, 8.1, 7.0, 7.7, 8.9];
+        const corePercent = [11.2, 11.1, 10.7, 9.8, 8.9, 7.7, 7.1, 10.6];
+        
+        // Year-over-year data
+        const yearData = [
+            { year: '2023', avgTotal: 563, avgCrowd: 354, avgCongregation: 91, avgCommitted: 57, avgCore: 62 },
+            { year: '2024', avgTotal: 673, avgCrowd: 459, avgCongregation: 115, avgCommitted: 53, avgCore: 59 },
+            { year: '2025', avgTotal: 693, avgCrowd: 448, avgCongregation: 129, avgCommitted: 57, avgCore: 60 }
+        ];
+        
+        // Chart configurations
+        Chart.defaults.color = '#b8b8d1';
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        
+        // Stacked Area Chart
+        const stackedCtx = document.getElementById('stackedAreaChart').getContext('2d');
+        const stackedChart = new Chart(stackedCtx, {
+            type: 'line',
+            data: {
+                labels: periods,
+                datasets: [
+                    {
+                        label: 'Core',
+                        data: coreData,
+                        backgroundColor: 'rgba(147, 51, 234, 0.8)',
+                        borderColor: 'rgba(147, 51, 234, 1)',
+                        fill: 'origin',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Committed',
+                        data: committedData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        fill: '-1',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Congregation',
+                        data: congregationData,
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        fill: '-1',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Crowd',
+                        data: crowdData,
+                        backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        fill: '-1',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Number of Adults'
+                        },
+                        min: 0,
+                        max: 900
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                let title = tooltipItems[0].label;
+                                if (title === '2025 T2*') {
+                                    title += ' (May-Jun only)';
+                                }
+                                return title;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Range slider control for Stacked Area Chart
+        const stackedMaxSlider = document.getElementById('stackedMax');
+        const stackedMaxValue = document.getElementById('stackedMaxValue');
+        
+        stackedMaxSlider.addEventListener('input', function() {
+            let maxVal = parseInt(this.value);
+            stackedMaxValue.textContent = maxVal;
+            stackedChart.options.scales.y.max = maxVal;
+            stackedChart.update();
+        });
+        
+        // Percentage Line Chart
+        const percentCtx = document.getElementById('percentageLineChart').getContext('2d');
+        const percentChart = new Chart(percentCtx, {
+            type: 'line',
+            data: {
+                labels: periods,
+                datasets: [
+                    {
+                        label: 'Crowd %',
+                        data: crowdPercent,
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Congregation %',
+                        data: congregationPercent,
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Committed %',
+                        data: committedPercent,
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Core %',
+                        data: corePercent,
+                        borderColor: 'rgba(147, 51, 234, 1)',
+                        backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Percentage of Total'
+                        },
+                        min: 0,
+                        max: 80,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                let title = tooltipItems[0].label;
+                                if (title === '2025 T2*') {
+                                    title += ' (May-Jun only)';
+                                }
+                                return title;
+                            },
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Range slider control for Percentage Chart
+        const percentMaxSlider = document.getElementById('percentMax');
+        const percentMaxValue = document.getElementById('percentMaxValue');
+        
+        percentMaxSlider.addEventListener('input', function() {
+            let maxVal = parseInt(this.value);
+            percentMaxValue.textContent = maxVal + '%';
+            percentChart.options.scales.y.max = maxVal;
+            percentChart.update();
+        });
+        
+        // Current Distribution Doughnut Chart
+        const currentCtx = document.getElementById('currentDistributionChart').getContext('2d');
+        new Chart(currentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Crowd (59.2%)', 'Congregation (21.3%)', 'Committed (8.9%)', 'Core (10.6%)'],
+                datasets: [{
+                    data: [353, 127, 53, 63],
+                    backgroundColor: [
+                        'rgba(251, 191, 36, 0.8)',
+                        'rgba(34, 197, 94, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(147, 51, 234, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(251, 191, 36, 1)',
+                        'rgba(34, 197, 94, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(147, 51, 234, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const percentage = ((value / 596) * 100).toFixed(1);
+                                return label.split(' ')[0] + ': ' + value + ' adults';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Year-over-Year Phase Comparison Chart
+        const yearGrowthCtx = document.getElementById('yearGrowthChart').getContext('2d');
+        const yearGrowthChart = new Chart(yearGrowthCtx, {
+            type: 'bar',
+            data: {
+                labels: ['2023', '2024', '2025*'],
+                datasets: [
+                    {
+                        label: 'Crowd',
+                        data: [354, 446, 448],
+                        backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Congregation',
+                        data: [91, 115, 129],
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Committed',
+                        data: [57, 53, 57],
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Core',
+                        data: [62, 59, 60],
+                        backgroundColor: 'rgba(147, 51, 234, 0.8)',
+                        borderColor: 'rgba(147, 51, 234, 1)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Average Members per Year'
+                        },
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                let title = tooltipItems[0].label;
+                                if (title === '2025*') {
+                                    title += ' (Partial Year)';
+                                }
+                                return title;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Phase Conversion Analysis Chart
+        const conversionCtx = document.getElementById('conversionChart').getContext('2d');
+        new Chart(conversionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Crowd → Congregation', 'Congregation → Committed', 'Committed → Core'],
+                datasets: [{
+                    label: 'Conversion Gap (# of people)',
+                    data: [226, 74, -10],
+                    backgroundColor: [
+                        'rgba(251, 191, 36, 0.8)',
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(147, 51, 234, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(251, 191, 36, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(147, 51, 234, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Number of People'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                if (value < 0) {
+                                    return 'Overlap: ' + Math.abs(value) + ' people';
+                                }
+                                return 'Gap: ' + value + ' people';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Zoom functions
+        function resetStackedZoom() {
+            stackedMaxSlider.value = 900;
+            stackedMaxValue.textContent = '900';
+            stackedChart.options.scales.y.max = 900;
+            stackedChart.options.scales.y.min = 0;
+            stackedChart.update();
+        }
+        
+        function resetPercentZoom() {
+            percentMaxSlider.value = 80;
+            percentMaxValue.textContent = '80%';
+            percentChart.options.scales.y.max = 80;
+            percentChart.options.scales.y.min = 0;
+            percentChart.update();
+        }
+        
+        function focusAllPhases() {
+            stackedMaxSlider.value = 800;
+            stackedMaxValue.textContent = '800';
+            stackedChart.options.scales.y.max = 800;
+            stackedChart.options.scales.y.min = 0;
+            stackedChart.update();
+        }
+        
+        function focusCongregationCommitted() {
+            stackedMaxSlider.value = 200;
+            stackedMaxValue.textContent = '200';
+            stackedChart.options.scales.y.max = 200;
+            stackedChart.options.scales.y.min = 0;
+            stackedChart.update();
+        }
+        
+        function focusCommittedCore() {
+            stackedMaxSlider.value = 150;
+            stackedMaxValue.textContent = '150';
+            stackedChart.options.scales.y.max = 150;
+            stackedChart.options.scales.y.min = 0;
+            stackedChart.update();
+        }
+        
+        function focusGrowthPeriod() {
+            stackedMaxSlider.value = 850;
+            stackedMaxValue.textContent = '850';
+            stackedChart.options.scales.y.max = 850;
+            stackedChart.options.scales.y.min = 500;
+            stackedChart.update();
+        }
+        
+        function focusSmallPercentages() {
+            percentMaxSlider.value = 25;
+            percentMaxValue.textContent = '25%';
+            percentChart.options.scales.y.max = 25;
+            percentChart.options.scales.y.min = 0;
+            percentChart.update();
+        }
+        
+        function focusCongregationRange() {
+            percentMaxSlider.value = 30;
+            percentMaxValue.textContent = '30%';
+            percentChart.options.scales.y.max = 30;
+            percentChart.options.scales.y.min = 0;
+            percentChart.update();
+        }
+        
+        function focusNonCrowdRange() {
+            percentMaxSlider.value = 40;
+            percentMaxValue.textContent = '40%';
+            percentChart.options.scales.y.max = 40;
+            percentChart.options.scales.y.min = 0;
+            percentChart.update();
+        }
+        
+        // Make functions globally available
+        window.resetStackedZoom = resetStackedZoom;
+        window.resetPercentZoom = resetPercentZoom;
+        window.focusAllPhases = focusAllPhases;
+        window.focusCongregationCommitted = focusCongregationCommitted;
+        window.focusCommittedCore = focusCommittedCore;
+        window.focusGrowthPeriod = focusGrowthPeriod;
+        window.focusSmallPercentages = focusSmallPercentages;
+        window.focusCongregationRange = focusCongregationRange;
+        window.focusNonCrowdRange = focusNonCrowdRange;
+    </script>
+</body>
+</html>
